@@ -19,13 +19,14 @@ RejectEvent( PyObject* pFunction,
   PyObject* pScriptArgs = PyTuple_New( 1 );
   PyObject* pNhit = PyInt_FromLong( event->NHits );
   PyTuple_SetItem( pScriptArgs, 0, pNhit );
-  Py_DECREF( pNhit ); pNhit = NULL; // 'delete' pNhit
+
   // Call the function
   PyObject* pResult = PyObject_CallObject( pFunction, pScriptArgs );
   if( pResult == Py_True )
     result = true;
+  Py_DECREF( pNhit ); pNhit = NULL; // 'delete' pNhit
   Py_DECREF( pScriptArgs );
-  Py_DECREF( pResult );
+  Py_XDECREF( pResult );
   return result;
 }
 
@@ -37,16 +38,16 @@ EventLoop( PyObject* pFunction,
 	   avalanche::client& client,
 	   avalanche::server& server )
 {
-  while( true ) 
+  while( true )
     {
       RAT::DS::PackedRec* rec = reinterpret_cast<RAT::DS::PackedRec*>( client.recv() );
       if( rec && rec->RecordType == 1 ) // Only deals with PackedEvents, ignores the rest 
 	{
-	  RAT::DS::PackedEvent* event = dynamic_cast<RAT::DS::PackedEvent*> (rec->Rec);
+	  RAT::DS::PackedEvent* event = dynamic_cast<RAT::DS::PackedEvent*>( rec->Rec );
 	  if( RejectEvent( pFunction, event ) == false )
-	    server.sendObject( event );
-	  delete rec;
+	    server.sendObject( rec );
 	}
+      delete rec;
     }
 }
 
@@ -81,7 +82,7 @@ main( int argc,
   // All setup, start repeating...
   EventLoop( pFunction, client, server );
   // Cleanup 
-  Py_DECREF( pFunction ); pFunction = NULL; // 'delete' pFunction
+  Py_XDECREF( pFunction ); pFunction = NULL; // 'delete' pFunction
   Py_DECREF( pScript ); pScript = NULL; // 'delete' pScript
   Py_Finalize();
 }
