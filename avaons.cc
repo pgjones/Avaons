@@ -1,40 +1,30 @@
 #include <avalanche.hpp>
 
-#include <Python.h>
-
 #include <iostream>
 using namespace std;
 
 #include <RAT/DS/PackedEvent.hh>
 
+#include <TPython.h>
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// This function calls the python script, returns true if event should not be rebroadcast
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool 
-RejectEvent( PyObject* pFunction,
+RejectEvent( char* pyFile,
 	     RAT::DS::PackedEvent* event )
 {
-  bool result = false;
-  // Currently only send the Nhits
-  PyObject* pScriptArgs = PyTuple_New( 1 );
-  PyObject* pNhit = PyInt_FromLong( event->NHits );
-  PyTuple_SetItem( pScriptArgs, 0, pNhit );
-
-  // Call the function
-  PyObject* pResult = PyObject_CallObject( pFunction, pScriptArgs );
-  if( pResult == Py_True )
-    result = true;
-  Py_DECREF( pNhit ); pNhit = NULL; // 'delete' pNhit
-  Py_DECREF( pScriptArgs );
-  Py_XDECREF( pResult );
-  return result;
+  TPython pyWrapper;
+  pyWrapper.LoadMacro( pyFile );
+  pyWrapper.Bind( event, "packedEvent" );
+  return static_cast<int>( pyWrapper.Eval( "RejectEvent( packedEvent )" ) ); // Convert to int first, then bool in return
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// This function runs the event loop
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-EventLoop( PyObject* pFunction,
+EventLoop( char* pyFile,
 	   avalanche::client& client,
 	   avalanche::server& server )
 {
@@ -44,7 +34,7 @@ EventLoop( PyObject* pFunction,
       if( rec && rec->RecordType == 1 ) // Only deals with PackedEvents, ignores the rest 
 	{
 	  RAT::DS::PackedEvent* event = dynamic_cast<RAT::DS::PackedEvent*>( rec->Rec );
-	  if( RejectEvent( pFunction, event ) == false )
+	  if( RejectEvent( pyFile, event ) == false )
 	    server.sendObject( rec );
 	}
       delete rec;
@@ -64,25 +54,10 @@ main( int argc,
       cout << "Error: Incorrect usage, should be avaons pythonScript inputPort outputPort." << endl;
       return 1;
     }
-  // Setup python
-  Py_Initialize();
-  PyObject* pScriptName = PyString_FromString( argv[1] );
-  PyObject* pScript = PyImport_Import( pScriptName ); // Load script
-  Py_DECREF( pScriptName ); pScriptName = NULL; // 'Delete' pScriptName variable
-  PyObject* pFunction = PyObject_GetAttrString( pScript, "RejectEvent" );
-  if( !pFunction || !PyCallable_Check( pFunction ) )
-    {
-      cout << "Error: Function RejectEvent in " << argv[1] << " is not callable." << endl;
-      return 1;
-    }
   // Setup avalanche
   avalanche::client client;
   client.addDispatcher( argv[2] );
   avalanche::server server( argv[3] );
   // All setup, start repeating...
-  EventLoop( pFunction, client, server );
-  // Cleanup 
-  Py_XDECREF( pFunction ); pFunction = NULL; // 'delete' pFunction
-  Py_DECREF( pScript ); pScript = NULL; // 'delete' pScript
-  Py_Finalize();
+  EventLoop( argv[1], client, server );
 }

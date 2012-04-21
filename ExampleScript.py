@@ -4,8 +4,8 @@
 
 def RejectEvent( event ):
     """ Currently the event list has one entry, the nhits."""
-    print "Got Event with Nhit:", event
-    if event < 1000:
+    print "Got Event with Nhit:", event.NHits
+    if event.NHits < 1000:
         return True
     else:
         return False
