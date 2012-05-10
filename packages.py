@@ -26,7 +26,7 @@ def Avalanche(env):
 
 # Append Python libraries
 def Python(env):
-    env.ParseConfig( os.path.join('python-config') + " --cflags  ")
+    env.ParseConfig( os.path.join('python-config') + " --includes  ")
     env.ParseConfig( os.path.join('python-config') + " --ldflags ")
     env.ParseConfig( os.path.join('python-config') + " --libs ")
 
