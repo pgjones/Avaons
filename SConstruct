@@ -6,7 +6,7 @@ import os
 import packages
 
 # Get build environment
-env = Environment()
+env = Environment( ENV = os.environ )
 
 packages.AddPackages( env )
 

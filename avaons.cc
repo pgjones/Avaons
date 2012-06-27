@@ -7,6 +7,7 @@
 using namespace std;
 
 #include <RAT/DS/PackedEvent.hh>
+#include <RAT/BitManip.hh>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// This function exits the code on a signal like ctrl-c
@@ -26,6 +27,16 @@ RejectEvent( PyObject* pFunction,
   bool result = false;
   // Develop and send the dictionary
   PyObject* pScriptArgs = PyDict_New();
+  unsigned int eventID = RAT::BitManip::GetBits( event->MTCInfo[3], 0, 24 );
+  PyObject* pGTID = PyInt_FromLong( eventID );
+  PyDict_SetItemString( pScriptArgs, "gtid", pGTID );
+  Py_DECREF( pGTID );
+  unsigned trigpart1 = RAT::BitManip::GetBits( event->MTCInfo[3], 24, 8 );
+  unsigned trigpart2 = RAT::BitManip::GetBits( event->MTCInfo[4], 0, 19 );
+  unsigned trigType = ( trigpart2 << 8 ) + trigpart1;
+  PyObject* pTrigger = PyInt_FromLong( trigType );
+  PyDict_SetItemString( pScriptArgs, "trigger", pTrigger );
+  Py_DECREF( pTrigger );
   PyObject* pNhit = PyInt_FromLong( event->NHits );
   PyDict_SetItemString( pScriptArgs, "nhit", pNhit );
   Py_DECREF( pNhit );

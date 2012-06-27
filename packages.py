@@ -15,7 +15,11 @@ def rat(env):
 
 # Appends Curl and Bzip (for RAT)
 def Curl(env):
-    env.Append( LIBS = [ "bz2", "curl" ] )
+    env.Append( LIBS = [ 'bz2' ] )
+    if "BZIPROOT" in os.environ:
+        env['CPPPATH'].append( os.environ['BZIPROOT'] + "/include" )
+        env['LIBPATH'].append( os.environ['BZIPROOT'] + "/lib" )
+    env.ParseConfig( "curl-config --cflags --libs" )
 
 # Append Avalanche and zmq
 def Avalanche(env):
@@ -26,9 +30,15 @@ def Avalanche(env):
 
 # Append Python libraries
 def Python(env):
-    env.ParseConfig( os.path.join('python-config') + " --includes  ")
-    env.ParseConfig( os.path.join('python-config') + " --ldflags ")
-    env.ParseConfig( os.path.join('python-config') + " --libs ")
+    ldflags = env.backtick( "python-config --includes --libs --ldflags").split() # Split on space, diff flags
+    # Put all options after -u in LINKFLAGS, may not have a -u part though
+    try:
+        idx = ldflags.index('-u')
+        env.Append( LINKFLAGS=ldflags[idx:] )
+        del ldflags[idx:] # Remove the -u part
+    except ValueError:
+        idx = -1
+    env.MergeFlags( ' '.join( ldflags ) )
 
 # Adds all packages
 def AddPackages(env):
