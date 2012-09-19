@@ -1,3 +1,4 @@
+# This project is DEAD, it cannot be used with the zdab data format (no broadcaster exists).
 # Avaons
 To use the example script try something like
 
